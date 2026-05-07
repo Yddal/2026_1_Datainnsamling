@@ -1,0 +1,8 @@
+# python virtual environment
+.venv/
+__pycache__/
+.env
+
+
+# Mapper
+ignore/
