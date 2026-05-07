@@ -67,7 +67,9 @@ def get_data(name: str,parameters: dict[str, Any]) -> dict[str, Any] | None:
 
 def get_observations(parameters: dict[str, Any]) -> dict[str, Any] | None:
     response = get_data("observations", parameters) # Hent alle observasjoner for angitt sted og tid
-    start_date, end_date = parameters['referencetime'].split('/') # Hent referencetime, som sier hvilket tidsrom vi ønsker data for, og splitt den i start- og sluttdato.
+    start_date = pd.to_datetime(response.get('data', [{}])[0].get('referenceTime', 'unknown_start')).date() # Hent startdato, 'unknown_start' hvis det ikke kan hentes.
+    end_date = pd.to_datetime(response.get('data', [{}])[-1].get('referenceTime', 'unknown_end')).date() # Hent sluttdato, 'unknown_end' hvis det ikke kan hentes.
+
     with open(f'data/met_frost_observations_{start_date}_{end_date}.json', 'w') as f: # Skriv til fil
         json.dump(response, f) # Dump JSON-data til filen.
 
