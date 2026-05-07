@@ -13,8 +13,7 @@ from dotenv import load_dotenv
 import argparse
 import json
 from typing import Any
-from datetime import date
-
+import time
 
 import pandas as pd
 
@@ -27,12 +26,24 @@ load_dotenv()
 MET_FROST_BASE_URL = "https://frost.met.no/"
 MET_frost_client_ID = os.getenv("MET_frost_client_ID")
 
+MET_frost_parameters = {
+    'sources': 'SN90450',
+    'elements': 'air_temperature,wind_speed',
+    'referencetime': '2026-01-01/2026-04-02',
+    'timeresolutions': 'PT1H', # Hent data for hver time (PT1H = Period Time 1 Hour)
+    'timeoffsets': 'PT0H', # Start klokken 0
+    'levels': 'default', # Unngå doble avlesninger fra sensorer på samme høydenivå.
+    'qualities': '0,1', # Hent alle data, inkludert de som er merket som "usikre" eller "feilaktige" av METs kvalitetssikringsprosess. Dette gir et mer komplett datasett
+}
+
+MET_frost_coordinates = "65.57838632358961, 20.24106911253074" # Koordinater for Markbygden II Vindpark, nær Piteå i Sverige. Format: "latitude, longitude".
 
 # MET Weather API for å hente prediksjoner om vær og vind.
 MET_Weather_Client_ID = os.getenv("MET_Weather_Client_ID")
 
 
-
+# === Funksjoner ===
+# Hent data fra MET APIet ved bruk av GET-forespørsel.
 def get_data(name: str,parameters: dict[str, Any]) -> dict[str, Any] | None: 
     url = f"{MET_FROST_BASE_URL}/{name}/v0.jsonld"
     try:
@@ -47,26 +58,12 @@ def get_data(name: str,parameters: dict[str, Any]) -> dict[str, Any] | None:
         print(f"FEIL! Henting av data feilet for: {name}: {response.text}")
         return None
     else:
-        print(f"Suksess! Data hentet for: {name}")
+        print(f"Suksess! Data hentet for: {name}, antall verdier i observations: {len(response.json().get('data', []))}")
 
-    
-    response_data = response.json() # Parser respons-body fra JSON-tekst til en Python-dict og returnerer den.
+    #response_data = response.json() # Parser respons-body fra JSON-tekst til en Python-dict og returnerer den.
     # print(f"Response JSON: {response_data}")  # Debug: Skriv ut hele JSON-responsen for å se strukturen.
 
     return response.json()
-
-
-MET_frost_parameters = {
-    'sources': 'SN90450',
-    'elements': 'air_temperature,wind_speed',
-    'referencetime': '2026-01-01/2026-04-02',
-    'timeresolutions': 'PT1H', # Hent data for hver time (PT1H = Period Time 1 Hour)
-    'timeoffsets': 'PT0H', # Start klokken 0
-    'levels': 'default', # Unngå doble avlesninger fra sensorer på samme høydenivå.
-    'qualities': '0,1', # Hent alle data, inkludert de som er merket som "usikre" eller "feilaktige" av METs kvalitetssikringsprosess. Dette gir et mer komplett datasett
-}
-
-MET_frost_coordinates = "65.57838632358961, 20.24106911253074" # Koordinater for Markbygden II Vindpark, nær Piteå i Sverige. Format: "latitude, longitude".
 
 def get_observations(parameters: dict[str, Any]) -> dict[str, Any] | None:
     response = get_data("observations", parameters) # Hent alle observasjoner for angitt sted og tid
@@ -82,7 +79,9 @@ def get_long_daterange(parameters: dict[str, Any]) -> None:
     start_date, end_date = parameters['referencetime'].split('/') # Hent referencetime, som sier hvilket tidsrom vi ønsker data for, og splitt den i start- og sluttdato.
 
     start_date = pd.to_datetime(start_date).date() # Konverterer startdato til en date-objekt.
-    end_date = pd.to_datetime(end_date).date()
+    end_date = (pd.to_datetime(end_date) + pd.DateOffset(days=1)).date() # Legg til 1 dag til end_date for å inkludere hele den siste dagen i tidsrommet. APIet henter frem til dato klokken 00:00, så da stopper data dagen før klokken 23:00.
+
+    print(f"Start henting av data for periode: {start_date} til {end_date}")
 
     if start_date >= end_date:
         print("FEIL! Startdato må være før sluttdato.")
@@ -102,7 +101,7 @@ def get_long_daterange(parameters: dict[str, Any]) -> None:
             print(f"Henter data for periode: {parameters['referencetime']}") # Debug: Skriv ut tidsrommet vi henter data for.
             start_date = interval_end_date
             get_observations(parameters) # Hent data for det angitte tidsrommet.
-    parameters['referencetime'] = f"{start_date}/{end_date}" # Oppdater parameters med det nye tidsrommet.
+            time.sleep(2) # Legg inn en kort pause mellom hver API-forespørsel for å unngå å overbelaste serveren eller treffe rate limits.
 
 def combine_json_files(folder: str = 'data') -> None:
     from pathlib import Path
@@ -113,9 +112,16 @@ def combine_json_files(folder: str = 'data') -> None:
         with open(path, 'r') as f:
             content = json.load(f)
         combined_data.extend(content.get('data', [])) # .Extend legger til alle datapunktene fra denne filen som en del av det eksisterende arrayet. Append funksjonen ville gitt flere arrays i JSON filen.
-
+    print(f"Kombinert totalt {len(combined_data)} datapunkter fra {len(files)} filer.")
+    print(f"Første datapunkt: {combined_data[0].get('referenceTime')}")
+    print(f"Siste datapunkt: {combined_data[-1].get('referenceTime')}")
     with open(f'{folder}/combined_observations.json', 'w') as f:
         json.dump({'data': combined_data}, f) # Skriv ut den kombinerte dataen til en ny JSON-fil.
+
+
+get_long_daterange(MET_frost_parameters) # Legg inn en lang daterange for å teste splitting av tidsrommet i mindre intervaller. Dette er etter METs anbefaling for å håndtere store datamengder og unngå timeouts eller avslag fra APIet.
+combine_json_files() # Kjør for å kombinere alle JSON-filene i 'data' mappen til en enkelt fil med alle observasjoner samlet.   
+
 
 # --------------------------------
 # Ikke lengre brukte funksjoner  |
@@ -133,14 +139,6 @@ def loop_json_data(file_path: str) -> None:
     print(f"SourceID: {data.get('data', [{}])[0].get('sourceId') if data.get('data') else 'N/A'}") # Hent sourceId fra første datapunkt, eller 'N/A' hvis ingen data.
     # I data.get('data', [{}]) så står [{}] for default verdi hvis 'data' skulle vært tom eller ikke finnnes. Dette forhindrer KeyError når vi prøver å hente 'SourceID'.
     print(f"Link: {data.get('currentLink')}") # Hent link som sendes til APIet.
-
-
-# get_observations(MET_frost_parameters) Kjør for å hente data og lagre i JSON-fil
-
-# get_long_daterange(MET_frost_parameters) # Legg inn en lang daterange for å teste splitting av tidsrommet i mindre intervaller. Dette er etter METs anbefaling for å håndtere store datamengder og unngå timeouts eller avslag fra APIet.
-# Legg inn splitting av dato range i mindre serier.
-
-combine_json_files() # Kjør for å kombinere alle JSON-filene i 'data' mappen til en enkelt fil med alle observasjoner samlet.   
 
 
 """
