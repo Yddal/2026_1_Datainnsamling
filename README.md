@@ -1,24 +1,24 @@
 # 2026_1_Datainnsamling
+Innsamling av åpnen data fra værtjenester, historisk værdata og strømpriser for prediksjon av strømpriser i Norge.
+Prosjektet henter historiske strømpriser, værdata og vannmagasinstatus fra åpne API-er, og lagrer det lokalt for å brukes videre i ett eventuelt maskinlæringsprosjekt.
 
-Innsamling av åpne data for prediksjon av strømpriser i Norge. Prosjektet henter
-historiske strømpriser, værdata og vannmagasinstatus fra åpne API-er, og lagrer
-dem lokalt for videre analyse til ett maskinlæringsprosjekt.
+For en fullstendig oppgavebeskrivelse, problemstilling og refleksjoner se[Oppgavebesvarelse.md](Oppgavebesvarelse.md).
 
-For en fullstendig beskrivelse av problemstilling, metodevalg og refleksjoner,
-se [Oppgavebesvarelse.md](Oppgavebesvarelse.md).
-
-## Datakilder
+## Datakilder som utgangspunkt i oppgaven
 
 | Kilde | Innhold | Lisens | Status |
 |-------|---------|--------|--------|
 | [ENTSO-E Transparency Platform](https://transparency.entsoe.eu/) | Historiske strømpriser og vindproduksjon per prisområde | EU Open Data | Ikke implementert |
-| [MET Frost API](https://frost.met.no/) | Historiske værobservasjoner | NLOD | Implementert ([Client_MET_API.py](Client_MET_API.py)) |
-| [MET LocationForecast](https://api.met.no/) | Værprognoser | NLOD | Ikke implementert |
-| [NVE](https://www.nve.no/) | Status for vannmagasiner | NLOD | Ikke implementert |
+| [MET Frost API](https://frost.met.no/) | Historisk værdata | NLOD & CC BY 4.0 | Implementert* ([Client_MET_API.py](Client_MET_API.py)) |
+| [MET LocationForecast](https://api.met.no/) | Værprognoser | NLOD & CC BY 4.0 | Ikke implementert |
+| [NVE](https://www.nve.no/) | Status for vannmagasiner | NLOD & CC BY 3.0 | Ikke implementert |
+
+*Implementert, men kan se ut som at data i Europa er ganske begrenset for historisk bruk. Oppløsning på lokasjoner kan være for dårlig til å brukes i ett maskinlæringsprosjekt.
 
 ## Oppsett
 
 Prosjektet bruker Python 3.11+ og et virtuelt miljø.
+For å sette opp og installere nødvendige pakker bruk følgende kommandoer for å hente fra requirements.txt fil.
 
 ```powershell
 py -m venv .venv
@@ -27,31 +27,22 @@ pip install -r requirements.txt
 ```
 
 ### Miljøvariabler
-
-Opprett en `.env`-fil i prosjektroten med API-nøkler:
+For å bruke MET Frost APIet så må du registrere deg på [frost.met.no/auth/requestCredentials.html](https://frost.met.no/auth/requestCredentials.html).
+For å bruke APIet trenger du kun Client ID som legges inn i `.env` filen.
 
 ```
-MET_frost_client_ID=<din-frost-client-id>
-MET_Weather_Client_ID=<din-weather-client-id>
+MET_frost_client_ID="din-frost-client-id"
 ```
 
-Frost-nøkkel registreres på [frost.met.no/auth/requestCredentials.html](https://frost.met.no/auth/requestCredentials.html).
-`.env` er allerede listet i `.gitignore` slik at nøklene ikke comittes.
+`.env` filen er allerede listet i `.gitignore` slik at nøklene ikke comittes til git.
 
 ## Bruk
 
 ### Hente observasjoner fra Frost
 
-[Client_MET_API.py](Client_MET_API.py) henter time-for-time observasjoner og
-lagrer de i JSON format under `data/` mappen. Standardparametere ligger øverst i filen
-(`MET_frost_parameters`):
+[Client_MET_API.py](Client_MET_API.py) henter time-for-time observasjoner og lagrer de i JSON format under `data/` mappen. Standardparametere ligger øverst i filen i variabel `MET_frost_parameters`:
 
-- `sources`: stasjons-ID (f.eks. `SN90450`)
-- `elements`: hvilke målinger som hentes (f.eks. `air_temperature,wind_speed`)
-- `referencetime`: tidsrom på formatet `YYYY-MM-DD/YYYY-MM-DD`
-- `timeresolutions`: `PT1H` for time-data, `P1D` for døgn-data
-
-Lange tidsrom splittes i månedlige biter for å unngå timeout:
+Lange tidsrom splittes i månedlige forespørsler for å unngå å nå grense for spørringer:
 
 ```python
 get_long_daterange(MET_frost_parameters)
@@ -60,23 +51,14 @@ get_long_daterange(MET_frost_parameters)
 Hvert intervall lagres som en separat fil:
 `data/met_frost_observations_<start>_<end>.json`.
 
-### Hjelpefunksjoner
-
-- `loop_json_data(file_path)` — skriver ut alle observasjoner i én JSON-fil i lesbar form.
-- `inspect_data_folder(folder='data')` — viser antall observasjoner og første/siste tidspunkt for hver fil i mappa. Nyttig for å verifisere at innsamlingen dekker hele tidsrommet.
-
 ## Prosjektstruktur
 
 ```
 .
+├── .env                      # Miljøvariabler som Client ID til API.
 ├── Client_MET_API.py         # Klient for MET Frost API
-├── Oppgavebesvarelse.md      # Problemstilling, metode og refleksjon
+├── Oppgavebesvarelse.md      # Oppgavebesvarelse, problemstilling og refleksjon
 ├── data/                     # Lagrede API-responser (JSON)
-├── requirements.txt          # Python-avhengigheter
+├── requirements.txt          # Python-avhengigheter for å sette opp virtuelt miljø
 └── README.md
 ```
-
-## Lagring
-
-Innsamlet data lagres foreløpig som JSON-filer i `data/`. Plan er å migrere til
-SQLite for enklere spørringer på tvers av kilder — se Oppgavebesvarelse.md.

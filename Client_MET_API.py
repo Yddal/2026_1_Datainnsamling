@@ -23,7 +23,7 @@ MET_FROST_BASE_URL = "https://frost.met.no/"
 MET_frost_client_ID = os.getenv("MET_frost_client_ID")
 # nearest(POINT(20.241 65.578))
 MET_frost_parameters = {
-    'sources': 'SN90450', # SN217380 = Piteå - Fant ikke ut av hvorfor Piteå ikke fungerer som henting fra APIet og klarte ikke å finne noen stasjoner nærme nok til reell data.
+    'sources': 'SN71780', # SN71780 Åfjord II - Nærheten av Storheia Vindpark.
     'elements': 'air_temperature,wind_speed',
     'referencetime': '2025-01-01/2026-04-02',
     'timeresolutions': 'PT1H', # Hent data for hver time (PT1H = Period Time 1 Hour)
@@ -33,8 +33,10 @@ MET_frost_parameters = {
 }
 
 # MET Weather API for å hente prediksjoner om vær og vind.
-MET_Weather_BASE_URL = "https://api.met.no/weatherapi/locationforecast/2.0/complete"
-MET_Weather_Client_ID = os.getenv("MET_Weather_Client_ID")
+# IKKE IMPLEMENTERT ENDA.
+# MET_Weather_BASE_URL = "https://api.met.no/weatherapi/locationforecast/2.0/complete"
+# MET_Weather_Client_ID = os.getenv("MET_Weather_Client_ID")
+
 
 
 # === Funksjoner ===
