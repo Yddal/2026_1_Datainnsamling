@@ -2,7 +2,7 @@
 
 Innsamling av åpne data for prediksjon av strømpriser i Norge. Prosjektet henter
 historiske strømpriser, værdata og vannmagasinstatus fra åpne API-er, og lagrer
-dem lokalt for videre analyse.
+dem lokalt for videre analyse til ett maskinlæringsprosjekt.
 
 For en fullstendig beskrivelse av problemstilling, metodevalg og refleksjoner,
 se [Oppgavebesvarelse.md](Oppgavebesvarelse.md).
@@ -21,7 +21,7 @@ se [Oppgavebesvarelse.md](Oppgavebesvarelse.md).
 Prosjektet bruker Python 3.11+ og et virtuelt miljø.
 
 ```powershell
-python -m venv .venv
+py -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
@@ -36,14 +36,14 @@ MET_Weather_Client_ID=<din-weather-client-id>
 ```
 
 Frost-nøkkel registreres på [frost.met.no/auth/requestCredentials.html](https://frost.met.no/auth/requestCredentials.html).
-`.env` er allerede listet i `.gitignore` slik at nøklene ikke commitres.
+`.env` er allerede listet i `.gitignore` slik at nøklene ikke comittes.
 
 ## Bruk
 
 ### Hente observasjoner fra Frost
 
 [Client_MET_API.py](Client_MET_API.py) henter time-for-time observasjoner og
-lagrer dem som JSON i `data/`. Standardparametere ligger øverst i filen
+lagrer de i JSON format under `data/` mappen. Standardparametere ligger øverst i filen
 (`MET_frost_parameters`):
 
 - `sources`: stasjons-ID (f.eks. `SN90450`)

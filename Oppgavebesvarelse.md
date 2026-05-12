@@ -44,7 +44,15 @@ Anbefalt rate limit er 6-7 req/sec for å ha en "burst handling".
 Max date range: One-year date range
 Max 100 dokumenter om gangen.
 
-**MET**
+**MET Frost**
+Har krav om Caching, frekvens, store forespørsler og identifikasjon.
+De ber generelt om at en lagrer data for å ikke spørre unødvendig mye på dataen. Noe som er en generell regel en alltid bør følge.
+De ber også om å splitte store forespørsler på dataset. De spesifiserer ikke tydelig hva ett stort dataset er utenom at forespørsel på 1000 værstasjoner kan splittes i set på 100 stasjoner om gangen. De sier også at lange perioder gjerne kan splittes inn i "N time subranges". De sier derimot ikke hva en lang tidsserie er, om det er en måned eller ett år. I APIet som er laget her har vi begrenset spørringen til 1 måned om gangen som tilsvarer opp til 744 datasett i det som ble sett under testing.
+De spesifiserer også at hyppige spørringer som gjennomsnitter mer enn 1 spørring i sekunded bør begrenses. her har jeg implementert spørringer hvert andre sekund som standard.
+De ber også om at en skal identifisere seg, dette er sånn sett påkrevd da du må oppgi Client ID. Når du da kjører spørringer mot APIet så ar Client ID regnet som din identifikasjon.
+
+**MET Locationforecast**
+MET sitt weather API har en 
 
 **NVE**
 
@@ -58,21 +66,37 @@ Sett at prosjektet har en minimal innhenting, bruk og videredistribusjon av data
 I ett reelt prosjekt så ville det vært nødvendig også å oppgi kildene. Ett skriftlig svar fra institusjonene ville derfor vært veldig aktuelt å legge opp på en info/about side for å være åpen om innhenting og bruken.
 
 
-## AI Prompts:
+## AI Prompt 1:
 what is the python format for getting days between two dates from 2026-04-01 to 2026-05-07?
 
 ### Svar:
 date.fromisoformat handles YYYY-MM-DD directly. For full timestamps like 2026-04-01T00:00:00Z, use datetime.fromisoformat (Python 3.11+ accepts the trailing Z).
 
+## AI Prompt 2:
+bygg en requirements.txt og oppdater readme til å inkludere den i oppsettet
+
+### Svar:
+Requirements.txt:
+requests>=2.33,<3
+pandas>=3.0,<4
+python-dotenv>=1.2,<2
+
+readme line:
+pip install -r requirements.txt
+
 ## Kilder
 **ENTSO-E**
-[Power system asset management / Opne kodesnuttar / ENTSO-e transparency platform API · GitLab](https://gitlab.sintef.no/power-system-asset-management/opne-kodesnuttar/entso-e-transparency-platform-api)
-[Transparency Platform Restful API](https://documenter.getpostman.com/view/7009892/2s93JtP3F6)
-[How to get security token? – Transparency Platform](https://transparencyplatform.zendesk.com/hc/en-us/articles/12845911031188-How-to-get-security-token)
-[Sitemap for Restful API Integration – Transparency Platform](https://transparencyplatform.zendesk.com/hc/en-us/articles/15692855254548-Sitemap-for-Restful-API-Integration)
+* [Power system asset management / Opne kodesnuttar / ENTSO-e transparency platform API · GitLab](https://gitlab.sintef.no/power-system-asset-management/opne-kodesnuttar/entso-e-transparency-platform-api)
+* [Transparency Platform Restful API](https://documenter.getpostman.com/view/7009892/2s93JtP3F6)
+* [How to get security token? – Transparency Platform](https://transparencyplatform.zendesk.com/hc/en-us/articles/12845911031188-How-to-get-security-token)
+* [Sitemap for Restful API Integration – Transparency Platform](https://transparencyplatform.zendesk.com/hc/en-us/articles/15692855254548-Sitemap-for-Restful-API-Integration)
 
 **MET FROST**
-https://frost.met.no/termsofuse2.html
+* [Frost MET - Terms Of Use](https://frost.met.no/termsofuse2.html)
+* [Frost MET - Python example script](https://frost.met.no/python_example.html)
+
+**MET LocationWeather**
+[MET LocationWeather API Documentation](https://api.met.no/weatherapi/locationforecast/2.0/documentation)
 
 
 

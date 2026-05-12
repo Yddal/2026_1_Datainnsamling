@@ -1,9 +1,5 @@
 """
-
 Client for MET API.
-
-
-
 """
 
 # Environment setup
@@ -25,25 +21,54 @@ load_dotenv()
 # MET Frost API for å hente historisk data om vær og vind.
 MET_FROST_BASE_URL = "https://frost.met.no/"
 MET_frost_client_ID = os.getenv("MET_frost_client_ID")
-
+# nearest(POINT(20.241 65.578))
 MET_frost_parameters = {
-    'sources': 'SN90450',
+    'sources': 'SN90450', # SN217380 = Piteå - Fant ikke ut av hvorfor Piteå ikke fungerer som henting fra APIet og klarte ikke å finne noen stasjoner nærme nok til reell data.
     'elements': 'air_temperature,wind_speed',
-    'referencetime': '2026-01-01/2026-04-02',
+    'referencetime': '2025-01-01/2026-04-02',
     'timeresolutions': 'PT1H', # Hent data for hver time (PT1H = Period Time 1 Hour)
     'timeoffsets': 'PT0H', # Start klokken 0
     'levels': 'default', # Unngå doble avlesninger fra sensorer på samme høydenivå.
     'qualities': '0,1', # Hent alle data, inkludert de som er merket som "usikre" eller "feilaktige" av METs kvalitetssikringsprosess. Dette gir et mer komplett datasett
 }
 
-MET_frost_coordinates = "65.57838632358961, 20.24106911253074" # Koordinater for Markbygden II Vindpark, nær Piteå i Sverige. Format: "latitude, longitude".
-
 # MET Weather API for å hente prediksjoner om vær og vind.
+MET_Weather_BASE_URL = "https://api.met.no/weatherapi/locationforecast/2.0/complete"
 MET_Weather_Client_ID = os.getenv("MET_Weather_Client_ID")
 
 
 # === Funksjoner ===
 # Hent data fra MET APIet ved bruk av GET-forespørsel.
+# Finner nærmeste værstasjon basert på koordinater og skriver inn ID til 'sources' MET Frost parameters.
+# Det er noe filtrering som må implementeres, da ikke alle stasjoner gir samme data. Du får treff, men får ikke hentet observations..
+def find_sources(Coordinates: str) -> str:
+    url = f"{MET_FROST_BASE_URL}/sources/v0.jsonld?geometry=nearest(POINT({Coordinates}))"
+    try:
+        response = requests.get(url, auth=(MET_frost_client_ID, ''), timeout=10)
+    except requests.RequestException as e:
+        print(f"FEIL! Henting av kildedata feilet: {e}")
+        return ""
+
+    response.raise_for_status() # Kaster et unntak (HTTPError) hvis status-koden er 4xx eller 5xx. "Fail loudly".
+   
+    if response.status_code != 200:
+        print(f"FEIL! Henting av kildedata feilet: {response.text}")
+        return ""
+    else:
+        data = response.json() # Parser respons-body fra JSON-tekst til en Python-dict for videre behandling.
+        print(f"Suksess! Kildedata hentet for koordinater: {Coordinates}")
+        print(f"Antall kilder funnet: {data.get('currentItemCount', "Ikke funnet")}")
+        for sources in data.get('data', []):
+            print(
+                f"Kilde ID: {sources.get('id', "Ikke funnet")},\n"
+                f"Kilde navn: {sources.get('name', "Ikke funnet")},\n"
+                f"Land: {sources.get('country', "Ikke funnet")},\n"
+                f"latitude, longitude: {sources.get('geometry', {}).get('coordinates', ['Ikke funnet', 'Ikke funnet'])}")
+            print("-" * 40) # Separator for bedre lesbarhet i konsollen.
+        # MET_frost_parameters['sources'] = response.json().get('data', [{}])[0].get('id', '') # Oppdater 'sources' i MET Frost parameters med 'id' fra første kilde i data-arrayet, eller en tom streng hvis ingen data.
+
+    #return response.json().get('data', [{}])[0].get('id', '') # Hent 'id' fra første kilde i data-arrayet, eller returner en tom streng hvis ingen data.
+
 def get_data(name: str,parameters: dict[str, Any]) -> dict[str, Any] | None: 
     url = f"{MET_FROST_BASE_URL}/{name}/v0.jsonld"
     try:
@@ -109,7 +134,14 @@ def combine_json_files(folder: str = 'data') -> None:
     from pathlib import Path
 
     files = sorted(Path(folder).glob('*.json'))
+
+    if Path(folder+'/combined_observations.json') in files: # Sjekk om 'combined_observations.json' allerede finnes 'data' mappen. Path(...) er lagt til fordi innholdet i 'files' er av typen Path. 
+        print(f"Filen {folder}/combined_observations.json finnes allerede. Sletter den fra loop listen.")
+        files.remove(Path(folder+'/combined_observations.json')) # Fjern fil for å ikke legge til samme data på nytt.
+        print("-" * 40)
+    
     combined_data = [] # Liste for å samle alle datapunkter fra alle JSON-filene.
+
     for path in files:
         with open(path, 'r') as f:
             content = json.load(f)
@@ -120,51 +152,13 @@ def combine_json_files(folder: str = 'data') -> None:
     with open(f'{folder}/combined_observations.json', 'w') as f:
         json.dump({'data': combined_data}, f) # Skriv ut den kombinerte dataen til en ny JSON-fil.
 
+# Koordinater for Markbygden II Vindpark, nær Piteå i Sverige. Format: "longitude, latitude".
+# Bruk denne funksjonen for å finne nærmeste værstasjon.
+# Oppdater MET_frost_parameters['sources'] Manuelt hvis du skal endre på oppsettet.
+#MET_frost_coordinates = "20.241 65.578" # Format: "longitude latitude". OBS! Google maps gir motsatt (latitude, longitude).
+#find_sources(MET_frost_coordinates)
+
 
 get_long_daterange(MET_frost_parameters) # Legg inn en lang daterange for å teste splitting av tidsrommet i mindre intervaller. Dette er etter METs anbefaling for å håndtere store datamengder og unngå timeouts eller avslag fra APIet.
 combine_json_files() # Kjør for å kombinere alle JSON-filene i 'data' mappen til en enkelt fil med alle observasjoner samlet.   
 
-
-# --------------------------------
-# Ikke lengre brukte funksjoner  |
-# --------------------------------
-# Brukt for å verifisere en og en json fil i Early-testing.
-def loop_json_data(file_path: str) -> None:
-    with open(file_path, 'r') as f:
-        data = json.load(f)
-    for value in data.get('data', []): # Iterer gjennom alle datapunkter i responsen
-        print(f"Time: {value.get('referenceTime')}")
-        for observations in value.get('observations', []): # Hent ut observasjoner for hver tidsreferanse
-            print(f"Element: {observations.get('elementId')}, Value: {observations.get('value')}, Unit: {observations.get('unit')}")
-        print("-" * 40) # Separator for lesbarhet
-
-    print(f"SourceID: {data.get('data', [{}])[0].get('sourceId') if data.get('data') else 'N/A'}") # Hent sourceId fra første datapunkt, eller 'N/A' hvis ingen data.
-    # I data.get('data', [{}]) så står [{}] for default verdi hvis 'data' skulle vært tom eller ikke finnnes. Dette forhindrer KeyError når vi prøver å hente 'SourceID'.
-    print(f"Link: {data.get('currentLink')}") # Hent link som sendes til APIet.
-
-
-"""
-AI Magic prompt:
-Can you make a function to check the files inside the "data" folder and get the first and last value in 'data' ?
-"""
-def inspect_data_folder(folder: str = 'data') -> None:
-    from pathlib import Path
-
-    files = sorted(Path(folder).glob('*.json'))
-    if not files:
-        print(f"Ingen JSON-filer funnet i '{folder}'.")
-        return
-
-    for path in files:
-        with open(path, 'r') as f:
-            content = json.load(f)
-        entries = content.get('data', [])
-        print(f"--- {path.name} ---")
-        if not entries:
-            print("  (tom)")
-            continue
-        print(f"  Antall: {len(entries)}")
-        print(f"  Første: {entries[0].get('referenceTime')}")
-        print(f"  Siste:  {entries[-1].get('referenceTime')}")
-
-# inspect_data_folder() # Kjør for å dobbelsjekke innholdet som er hentet.
