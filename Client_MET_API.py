@@ -10,9 +10,7 @@ import argparse
 import json
 from typing import Any
 import time
-
 import pandas as pd
-
 import requests
 
 load_dotenv()
@@ -36,8 +34,6 @@ MET_frost_parameters = {
 # IKKE IMPLEMENTERT ENDA.
 # MET_Weather_BASE_URL = "https://api.met.no/weatherapi/locationforecast/2.0/complete"
 # MET_Weather_Client_ID = os.getenv("MET_Weather_Client_ID")
-
-
 
 # === Funksjoner ===
 # Hent data fra MET APIet ved bruk av GET-forespørsel.
@@ -133,25 +129,28 @@ def get_long_daterange(parameters: dict[str, Any]) -> None:
             time.sleep(2) # Legg inn en kort pause mellom hver API-forespørsel for å unngå å overbelaste serveren eller treffe rate limits.
 
 def combine_json_files(folder: str = 'data') -> None:
-    from pathlib import Path
-
-    files = sorted(Path(folder).glob('*.json'))
-
-    if Path(folder+'/combined_observations.json') in files: # Sjekk om 'combined_observations.json' allerede finnes 'data' mappen. Path(...) er lagt til fordi innholdet i 'files' er av typen Path. 
+    
+    files = [os.path.join(folder, f) for f in os.listdir(folder)] # Hent alle file i 'data' mappen og lag en liste fullstendige filstier.
+    
+    if (folder+"/combined_observations.json") in files: # Sjekk om 'combined_observations.json' allerede finnes 'data' mappen.
         print(f"Filen {folder}/combined_observations.json finnes allerede. Sletter den fra loop listen.")
-        files.remove(Path(folder+'/combined_observations.json')) # Fjern fil for å ikke legge til samme data på nytt.
+        files.remove(folder+'/combined_observations.json') # Fjern fil for å ikke legge til samme data på nytt.
         print("-" * 40)
+    
+    files = sorted(files) # Sorter filene alfabetisk for å sikre at de kombineres i riktig rekkefølge.
     
     combined_data = [] # Liste for å samle alle datapunkter fra alle JSON-filene.
 
-    for path in files:
-        with open(path, 'r') as f:
-            content = json.load(f)
+    for file in files:
+        print(f"Legger inn data fra: {file}")
+        with open(file, 'r') as f: # Åpne gjeldende fil for lesing.
+            content = json.load(f) # Put innholdet inn i en variabel.
+        
         combined_data.extend(content.get('data', [])) # .Extend legger til alle datapunktene fra denne filen som en del av det eksisterende arrayet. Append funksjonen ville gitt flere arrays i JSON filen.
     print(f"Kombinert totalt {len(combined_data)} datapunkter fra {len(files)} filer.")
     print(f"Første datapunkt: {combined_data[0].get('referenceTime')}")
     print(f"Siste datapunkt: {combined_data[-1].get('referenceTime')}")
-    with open(f'{folder}/combined_observations.json', 'w') as f:
+    with open(f"{folder}/combined_observations.json", 'w') as f:
         json.dump({'data': combined_data}, f) # Skriv ut den kombinerte dataen til en ny JSON-fil.
 
 # Koordinater for Markbygden II Vindpark, nær Piteå i Sverige. Format: "longitude, latitude".
@@ -162,5 +161,4 @@ def combine_json_files(folder: str = 'data') -> None:
 
 
 get_long_daterange(MET_frost_parameters) # Legg inn en lang daterange for å teste splitting av tidsrommet i mindre intervaller. Dette er etter METs anbefaling for å håndtere store datamengder og unngå timeouts eller avslag fra APIet.
-combine_json_files() # Kjør for å kombinere alle JSON-filene i 'data' mappen til en enkelt fil med alle observasjoner samlet.   
-
+combine_json_files('data') # Kjør for å kombinere alle JSON-filene i 'data' mappen til en enkelt fil med alle observasjoner samlet.   

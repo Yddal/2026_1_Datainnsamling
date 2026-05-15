@@ -140,15 +140,19 @@ Etter å ha utviklet ferdig løsningen for MET Frost APIet så skulle jeg oppdat
 Det kan se ut som at MET Frost sin historikk er hovedsaklig for Norge og enkelte lokasjoner i Europa, men ikke med stor nøyaktighet som trengs for prosjektet.
 
 ## AI Prompt 1:
+*Info: datokonvertering ble skrevet om senere til å bruke pandas.*
 what is the python format for getting days between two dates from 2026-04-01 to 2026-05-07?
 
 ### Svar:
 date.fromisoformat handles YYYY-MM-DD directly. For full timestamps like 2026-04-01T00:00:00Z, use datetime.fromisoformat (Python 3.11+ accepts the trailing Z).
 
-## AI Prompt 2: (readme filen ble kun brukt som utkast/eksempel og har blitt omskrevet og kontrollert)
-bygg en requirements.txt og oppdater readme til å inkludere den i oppsettet
+## AI Prompt 2:
+*Info: Readme filen ble kun brukt som utkast/eksempel og har blitt omskrevet og kontrollert*
+
+Bygg en requirements.txt og en readme for å forklare prosjektet og hvordan sette opp miljøet.
 
 ### Svar:
+```
 Requirements.txt:
 requests>=2.33,<3
 pandas>=3.0,<4
@@ -156,23 +160,71 @@ python-dotenv>=1.2,<2
 
 readme line:
 pip install -r requirements.txt
+```
 
-## Andre AI Prompts:
-En del av spørringene har vært å forklare hvordan en setter opp x gitt dokumentasjonen som er gitt på sidene. Dette har vært for å få eksempler på bruk som jeg kan implementere i koden jeg selv bygger.
-
-**For eksempel:**
----
+## AI Prompt 3:
 Forklar hva [{}] betyr i følgende kodesnutt: response.get('data', [{}]) jeg fant på nettet
 
 Svar:
+```
+[{}] er en liste som inneholder én tom dictionary. Det brukes som en fallback-verdi for .get().
 
----
-Hva er en god måte å sortere filer i en mappe slik at de kan loopes igjennom i riktig rekkefølge?
+Slik fungerer det
+response.get('data', [{}]) betyr:
+
+Hvis response har nøkkelen 'data' → returner verdien (forventet en liste med dicts)
+Hvis nøkkelen mangler → returner [{}] istedenfor
+```
+
+## AI Prompt 4 / Google søk:
+python sort files in a list by date in a folder
 
 Svar:
 
+```python
 
----
+import os
+
+folder_path = '/path/to/your/folder'
+
+# Get list of files in the directory
+files = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
+
+# Sort files by modification time (oldest first)
+files.sort(key=os.path.getmtime)
+
+# To sort by newest first, add reverse=True
+# files.sort(key=os.path.getmtime, reverse=True)
+
+print(files)
+```
+
+## AI Prompt 5:
+explain this line of code for me:
+            result = cursor.fetchall()
+            print('SQLite Version is {}'.format(result[0][0]))
+
+Svar:
+```python
+After cursor.execute(query) runs a SQL query, the results are held inside the cursor. fetchall() pulls every row of the result set into a Python list.
+
+The shape is a list of tuples, where each tuple is one row:
+
+
+[(row1_col1, row1_col2, ...), (row2_col1, ...), ...]
+For a query like SELECT sqlite_version();, you'd get back something like:
+
+
+[('3.45.1',)]
+— one row, one column (note the trailing comma making it a tuple).
+
+print('SQLite Version is {}'.format(result[0][0]))
+This indexes into that list-of-tuples to pull out a single scalar value:
+
+result[0] → the first row, e.g. ('3.45.1',)
+result[0][0] → the first column of that first row, e.g. '3.45.1'
+Then '... {}'.format(...) substitutes that value into the string, printing SQLite Version is 3.45.1
+```
 
 ## Kilder
 **ENTSO-E**
