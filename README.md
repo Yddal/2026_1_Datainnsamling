@@ -50,15 +50,20 @@ get_long_daterange(MET_frost_parameters)
 
 Hvert intervall lagres som en separat fil:
 `data/met_frost_observations_<start>_<end>.json`.
+og kombineres til en komplett datafil:
+`data/combined_observations.json`.
 
 ## Prosjektstruktur
 
 ```
 .
 ├── .env                      # Miljøvariabler som Client ID til API.
+├── .gitignore                # Git ignore fil.
 ├── Client_MET_API.py         # Klient for MET Frost API
 ├── Oppgavebesvarelse.md      # Oppgavebesvarelse, problemstilling og refleksjon
 ├── data/                     # Lagrede API-responser (JSON)
 ├── requirements.txt          # Python-avhengigheter for å sette opp virtuelt miljø
+├── sqlite.db                 # SQLite databasefil
+├── SQLite.py                 # Script for innlesing av data fra JSON resultat til databasen
 └── README.md
 ```

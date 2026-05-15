@@ -30,6 +30,9 @@ All data skal lagres i SQLite-database. For å forenkle opprettelsen av database
 
 Utgangspunktet for innhentingen blir å skaffe ett dataset som går over året 2025 for å få alle årstidene.
 
+All database implementasjon er lagt inn i [SQLite.py](SQLite.py) og databasen er lagt inn i sqlite.db
+
+
 ## Refleksjon
 ### Hvem eier dataen?
 **ENTSO-E** er en europeisk organisasjon for kraftoverføring og dataen er åpent tilgjengelig under EU sin "open data-lisens".
@@ -38,7 +41,9 @@ Utgangspunktet for innhentingen blir å skaffe ett dataset som går over året 2
 
 **NVE** er også en Norsk statsinstitusjon som publiserer under NLOD.
 
-Siden alle 3 selskapene oppfordrer til åpenhet og bruken av data for at den skal være tilgjengelig for alle så regnes dataen som "allemanns-eie" og oppfordrer til fri bruk av dataen til analyse og forskning så lenge kildene oppgis.
+Siden alle 3 selskapene oppfordrer til åpenhet og bruken av data for at den skal være tilgjengelig for alle så regnes dataen som "allemanns-eie" og oppfordrer til fri bruk av dataen til analyse og forskning så lenge kildene oppgis og Terms of Service opprettholdes.
+
+Videresalg av resultatet av analysen er mulig, men videreformidling av rådataen skal ligge under samme lisensvilkår som selskapet som leverer dataen.
 
 ### Hvilken belastning legges på kildene
 Alle leverandørene av data har retningslinjer for belastning og innhentingen som må sees på for å holde seg innenfor.

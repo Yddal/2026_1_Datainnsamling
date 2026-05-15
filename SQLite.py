@@ -5,8 +5,6 @@ Script for å opprette og lage SQL databasen for prosjektet.
 # Environment setup
 import sqlite3
 import json
-import os
-from pathlib import Path
 
 # ===   SQLite   ===
 database_name = 'sqlite.db'
